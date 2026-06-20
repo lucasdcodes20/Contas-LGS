@@ -1,0 +1,273 @@
+<?php
+/**
+ * Página de Login Obrigatório - contasLGS
+ */
+session_start();
+require_once __DIR__ . '/config.php';
+require_once __DIR__ . '/db.php';
+
+// Se já estiver logado, redireciona para o dashboard
+if (isset($_SESSION['user_id'])) {
+    header('Location: index.php');
+    exit;
+}
+
+$error = '';
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $username = trim($_POST['username'] ?? '');
+    $password = $_POST['password'] ?? '';
+
+    if (empty($username) || empty($password)) {
+        $error = 'Por favor, preencha todos os campos.';
+    } else {
+        try {
+            $userRepo = Database::getUserRepository();
+            $user = $userRepo->getByUsername($username);
+
+            if ($user && password_verify($password, $user['password'])) {
+                // Autenticação bem-sucedida!
+                $_SESSION['user_id'] = (int)$user['id'];
+                $_SESSION['user_name'] = $user['name'];
+                $_SESSION['user_username'] = $user['username'];
+                $_SESSION['user_role'] = $user['role'];
+
+                header('Location: index.php');
+                exit;
+            } else {
+                $error = 'Nome de usuário ou senha incorretos.';
+            }
+        } catch (Exception $e) {
+            $error = 'Erro na autenticação: ' . $e->getMessage();
+        }
+    }
+}
+?>
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>contasLGS — Login Obrigatório</title>
+    
+    <!-- Boxicons -->
+    <link href="https://cdn.jsdelivr.net/npm/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
+    
+    <!-- Estilos Premium -->
+    <link rel="stylesheet" href="style.css">
+    
+    <style>
+        body {
+            align-items: center;
+            justify-content: center;
+            padding: 1.5rem;
+            background: linear-gradient(135deg, #05070e 0%, #0c111e 100%);
+        }
+
+        .auth-container {
+            width: 100%;
+            max-width: 440px;
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+            align-items: center;
+        }
+
+        .auth-card {
+            background: rgba(14, 19, 34, 0.7);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--border-color);
+            border-radius: var(--border-radius-lg);
+            padding: 2.25rem;
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.7);
+            width: 100%;
+        }
+
+        .alert {
+            padding: 0.75rem 1rem;
+            border-radius: var(--border-radius-md);
+            font-size: 0.85rem;
+            font-weight: 500;
+            margin-bottom: 1.25rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: rgba(244, 63, 94, 0.1);
+            border: 1px solid var(--color-expense);
+            color: var(--color-expense);
+        }
+
+        /* --- ANIMAÇÃO EXCLUSIVA MOINHO LGS --- */
+        .windmill-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            position: relative;
+            height: 120px;
+            width: 120px;
+        }
+
+        .windmill {
+            width: 80px;
+            height: 80px;
+            position: relative;
+            animation: spinWindmill 8s linear infinite;
+        }
+
+        .windmill-center {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 14px;
+            height: 14px;
+            background: linear-gradient(135deg, var(--color-primary), #a855f7);
+            border-radius: 50%;
+            box-shadow: 0 0 12px var(--color-primary);
+            z-index: 5;
+        }
+
+        .windmill-blade {
+            position: absolute;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 800;
+            font-size: 0.85rem;
+            color: #fff;
+            box-shadow: 0 0 10px rgba(255, 255, 255, 0.15);
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: var(--transition-smooth);
+            user-select: none;
+        }
+
+        /* Lançadores orbitais dispostos em moinho de 120 graus cada */
+        .blade-l {
+            top: -2px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: linear-gradient(135deg, var(--color-primary), #818cf8);
+            box-shadow: 0 0 15px var(--color-primary-glow);
+            animation: pulseRadiusL 4s ease-in-out infinite alternate;
+        }
+
+        .blade-g {
+            bottom: 4px;
+            right: 0px;
+            background: linear-gradient(135deg, #a855f7, #c084fc);
+            box-shadow: 0 0 15px rgba(168, 85, 247, 0.4);
+            animation: pulseRadiusG 4s ease-in-out infinite alternate;
+        }
+
+        .blade-s {
+            bottom: 4px;
+            left: 0px;
+            background: linear-gradient(135deg, var(--color-income), #34d399);
+            box-shadow: 0 0 15px rgba(16, 185, 129, 0.4);
+            animation: pulseRadiusS 4s ease-in-out infinite alternate;
+        }
+
+        /* Rotação circular das pás */
+        @keyframes spinWindmill {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Animações orbitais para alterar a distância do centro (simula moinho dinâmico/mecânico) */
+        @keyframes pulseRadiusL {
+            0% { top: -2px; }
+            100% { top: -14px; }
+        }
+        @keyframes pulseRadiusG {
+            0% { bottom: 4px; right: 0px; }
+            100% { bottom: -6px; right: -10px; }
+        }
+        @keyframes pulseRadiusS {
+            0% { bottom: 4px; left: 0px; }
+            100% { bottom: -6px; left: -10px; }
+        }
+
+        .auth-footer {
+            text-align: center;
+            margin-top: 1.5rem;
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+        }
+
+        .auth-footer a {
+            color: var(--color-primary);
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        .auth-footer a:hover {
+            text-decoration: underline;
+        }
+
+        .branding-text {
+            font-size: 1.15rem;
+            font-weight: 700;
+            margin-top: 0.5rem;
+            letter-spacing: 0.05em;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="auth-container">
+        
+        <!-- LOGO MOINHO LGS -->
+        <div class="windmill-container">
+            <div class="windmill">
+                <div class="windmill-center"></div>
+                <div class="windmill-blade blade-l">L</div>
+                <div class="windmill-blade blade-g">G</div>
+                <div class="windmill-blade blade-s">S</div>
+            </div>
+            <div class="branding-text">
+                contas<span style="color: var(--color-primary)">LGS</span>
+            </div>
+        </div>
+
+        <!-- FORM CARD -->
+        <div class="auth-card">
+            
+            <?php if (!empty($error)): ?>
+                <div class="alert">
+                    <i class="bx bx-error-circle"></i>
+                    <span><?= $error ?></span>
+                </div>
+            <?php endif; ?>
+
+            <form action="login.php" method="POST" style="display: flex; flex-direction: column; gap: 1.25rem;">
+                <!-- Usuário -->
+                <div class="form-group">
+                    <label for="username">Nome de Usuário</label>
+                    <input type="text" id="username" name="username" class="form-input" placeholder="Insira seu login" required value="<?= htmlspecialchars($username ?? '') ?>">
+                </div>
+
+                <!-- Senha -->
+                <div class="form-group">
+                    <label for="password">Senha de Acesso</label>
+                    <input type="password" id="password" name="password" class="form-input" placeholder="Insira sua senha" required>
+                </div>
+
+                <button type="submit" class="btn btn-primary" style="margin-top: 0.5rem; width: 100%;">
+                    Acessar o Painel
+                </button>
+            </form>
+
+            <div class="auth-footer">
+                Ainda não tem conta? <a href="cadastro.php">Registre-se</a>
+            </div>
+        </div>
+
+    </div>
+
+</body>
+</html>
