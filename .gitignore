@@ -1,0 +1,12 @@
+# Dados de exemplo / legado (não utilizados pelo frontend atual)
+data/
+
+# Arquivos de sistema
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editores
+.vscode/
+*.swp
+*.swo

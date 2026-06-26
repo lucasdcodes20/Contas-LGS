@@ -521,7 +521,8 @@ function setupFilterListeners() {
 function triggerTransactionFilter() {
     state.pagination.page = 1;
     if (state.activeView === 'transactions') loadTransactions();
-    else loadDashboardData();
+    else if (state.activeView === 'dashboard') loadDashboardData();
+    // links/admin views não são afetados pelos filtros de transação
 }
 
 function resetFilters() {
@@ -803,7 +804,7 @@ function renderUsersTable() {
     const tbody = document.querySelector('#usersTable tbody');
     if (!tbody) return;
 
-    const currentUserId = parseInt(document.getElementById('currentUserId')?.value || 0);
+    const currentUserId = app.currentUser?.id || 0;
 
     tbody.innerHTML = state.users.map(u => {
         const isSelf = u.id === currentUserId;
@@ -938,11 +939,61 @@ async function saveProfile() {
 // ==========================================
 function exportCSV() {
     const monthYear = getSelectedMonth();
-    const type      = document.getElementById('filterType')?.value || '';
-    let url = 'api.php?route=export';
-    if (monthYear !== 'all') url += `&month_year=${monthYear}`;
-    if (type)                url += `&type=${encodeURIComponent(type)}`;
-    window.location.href = url;
+    const type      = document.getElementById('filterType')?.value     || '';
+    const category  = document.getElementById('filterCategory')?.value  || '';
+    const status    = document.getElementById('filterStatus')?.value    || '';
+    const dateFrom  = document.getElementById('filterDateFrom')?.value  || '';
+    const dateTo    = document.getElementById('filterDateTo')?.value    || '';
+    const search    = (document.getElementById('filterSearch')?.value   || '').trim().toLowerCase();
+
+    // Busca todas as transações do usuário no localStorage (sem paginação)
+    let txs = db.get('transactions').filter(t => t.user_id === app.currentUser.id);
+
+    // Aplica os mesmos filtros ativos na tela
+    if (monthYear !== 'all') txs = txs.filter(t => t.date.startsWith(monthYear));
+    if (type)     txs = txs.filter(t => t.type     === type);
+    if (category) txs = txs.filter(t => t.category === category);
+    if (status)   txs = txs.filter(t => t.status   === status);
+    if (dateFrom) txs = txs.filter(t => t.date     >= dateFrom);
+    if (dateTo)   txs = txs.filter(t => t.date     <= dateTo);
+    if (search)   txs = txs.filter(t =>
+        (t.description || '').toLowerCase().includes(search) ||
+        (t.notes       || '').toLowerCase().includes(search)
+    );
+
+    // Ordena por data crescente
+    txs.sort((a, b) => a.date.localeCompare(b.date));
+
+    if (txs.length === 0) return showToast('Nenhum dado para exportar.', 'error');
+
+    // BOM (\uFEFF) garante acentos corretos ao abrir no Excel
+    let csvContent = "data:text/csv;charset=utf-8,\uFEFF";
+    csvContent += "Descrição;Valor;Data;Categoria;Tipo;Status;Observações\n";
+
+    const escCsv = (v) => `"${String(v || '').replace(/"/g, '""')}"`;
+
+    txs.forEach(t => {
+        const row = [
+            escCsv(t.description),
+            t.amount,
+            t.date,
+            escCsv(t.category),
+            t.type,
+            t.status,
+            escCsv(t.notes || ''),
+        ];
+        csvContent += row.join(';') + '\n';
+    });
+
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement('a');
+    link.setAttribute('href', encodedUri);
+    const dateTag = new Date().toISOString().split('T')[0];
+    link.setAttribute('download', `contasLGS_export_${dateTag}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    showToast(`${txs.length} transação(ões) exportada(s)!`, 'success');
 }
 
 // ==========================================
@@ -1057,24 +1108,7 @@ async function processImport() {
 // ==========================================
 // UTILITÁRIOS
 // ==========================================
-async function apiFetch(url, options = {}) {
-    const defaults = {
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'same-origin',
-    };
-    const res = await fetch(url, Object.assign({}, defaults, options, {
-        headers: Object.assign({}, defaults.headers, options.headers || {})
-    }));
-
-    if (res.status === 401) { window.location.href = 'login.php'; return null; }
-
-    const json = await res.json();
-    if (!res.ok && json.error) {
-        showToast(json.error, 'error');
-        return null;
-    }
-    return json;
-}
+// apiFetch was moved to localdb.js
 
 function openModal(id) {
     const el = document.getElementById(id);
