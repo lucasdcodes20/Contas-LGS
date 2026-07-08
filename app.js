@@ -24,6 +24,9 @@ const state = {
 // INICIALIZAÇÃO
 // ==========================================
 document.addEventListener('DOMContentLoaded', () => {
+    const isAuthPage = window.location.pathname.includes('login.html') || window.location.pathname.includes('cadastro.html');
+    if (isAuthPage) return;
+
     initMonthSelector();
     setupNavigation();
     setupSidebar();
