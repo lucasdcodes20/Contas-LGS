@@ -37,10 +37,28 @@ const app = {
 
     checkAuth: function() {
         const isAuthPage = window.location.pathname.includes('login.html') || window.location.pathname.includes('cadastro.html');
+
+        // Valida se a sessão salva ainda é válida no banco local
+        if (this.currentUser) {
+            const users = db.get('users');
+            const userStillExists = users.some(u => u.id === this.currentUser.id);
+            if (!userStillExists) {
+                // Sessão corrompida/inválida — limpa tudo antes de redirecionar
+                localStorage.removeItem('contasLGS_currentUser');
+                this.currentUser = null;
+                if (!isAuthPage) {
+                    window.location.replace('login.html');
+                    return;
+                }
+            }
+        }
+
         if (!this.currentUser && !isAuthPage) {
-            window.location.href = 'login.html';
+            window.location.replace('login.html');
+            return;
         } else if (this.currentUser && isAuthPage) {
-            window.location.href = 'index.html';
+            window.location.replace('index.html');
+            return;
         }
         
         if (this.currentUser && document.getElementById('displayUserName')) {
@@ -62,7 +80,9 @@ async function apiFetch(url, options = {}) {
     await new Promise(r => setTimeout(r, 150)); // Simula rede
 
     if (!app.currentUser) {
-        window.location.href = 'login.html';
+        // Limpa sess\u00e3o antes de redirecionar para evitar loop
+        localStorage.removeItem('contasLGS_currentUser');
+        window.location.replace('login.html');
         return null;
     }
 
