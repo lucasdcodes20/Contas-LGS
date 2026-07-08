@@ -8,6 +8,21 @@ const db = {
             db.set('transactions', []);
             db.set('links', []);
         }
+        
+        // Garante que exista pelo menos um usuário administrador padrão
+        const users = db.get('users');
+        if (!users.some(u => u.role === 'admin')) {
+            users.push({
+                id: 1,
+                name: 'Administrador LGS',
+                email: 'admin@lgs.com',
+                username: 'admin',
+                password: 'admin',
+                role: 'admin',
+                created_at: new Date().toISOString()
+            });
+            db.set('users', users);
+        }
     }
 };
 db.init();
