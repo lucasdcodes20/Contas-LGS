@@ -54,7 +54,7 @@
 
 /* --- RESET & BASE --- */
 * { margin: 0; padding: 0; box-sizing: border-box; }
-body { background-color: var(--bg-main); color: var(--text-primary); font-family: var(--font-family); min-height: 100vh; display: flex; overflow-x: hidden; -webkit-font-smoothing: antialiased; }
+body { background-color: var(--bg-main); color: var(--text-primary); font-family: var(--font-family); min-height: 100vh; display: flex; overflow-x: hidden; -webkit-font-smoothing: antialiased; transition: background-color 0.3s, color 0.3s; }
 
 /* Custom Scrollbar */
 ::-webkit-scrollbar { width: 6px; height: 6px; }
