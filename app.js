@@ -99,10 +99,50 @@ document.addEventListener('DOMContentLoaded', () => {
         if (state.activeView === 'transactions') loadTransactions();
     });
 
+    // Botão Alternar Tema
+    const btnThemeToggle = document.getElementById('btnThemeToggle');
+    if (btnThemeToggle) btnThemeToggle.addEventListener('click', toggleTheme);
+
+    // Carregar tema salvo
+    loadTheme();
+
     // Carregar dados iniciais
     navigateTo('dashboard');
     loadAlerts();
 });
+
+// ==========================================
+// TEMA (DARK/LIGHT MODE)
+// ==========================================
+function loadTheme() {
+    const savedTheme = localStorage.getItem('contaslgs_theme') || 'dark';
+    document.documentElement.setAttribute('data-theme', savedTheme);
+    updateThemeIcon(savedTheme);
+}
+
+function toggleTheme() {
+    const currentTheme = document.documentElement.getAttribute('data-theme') || 'dark';
+    const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', newTheme);
+    localStorage.setItem('contaslgs_theme', newTheme);
+    updateThemeIcon(newTheme);
+    
+    // Atualizar gráficos se existirem para recalcular as cores
+    if (state.chartInstance) {
+        loadDashboardData(); // Recarrega os dados e recria o gráfico
+    }
+}
+
+function updateThemeIcon(theme) {
+    const btn = document.getElementById('btnThemeToggle');
+    if (!btn) return;
+    const icon = btn.querySelector('i');
+    if (theme === 'light') {
+        icon.className = 'bx bx-sun';
+    } else {
+        icon.className = 'bx bx-moon';
+    }
+}
 
 // ==========================================
 // NAVEGAÇÃO / VIEWS
