@@ -837,6 +837,19 @@ async function loadUsers() {
         const res = await apiFetch('api.php?route=users');
         if (!res) return;
         state.users = res.users || [];
+        
+        // Atualiza os KPIs do admin
+        const totalUsers = state.users.length;
+        const totalAdmins = state.users.filter(u => u.role === 'admin').length;
+        const totalCommon = totalUsers - totalAdmins;
+        
+        const kpiUsersEl = document.getElementById('kpiTotalUsers');
+        if (kpiUsersEl) kpiUsersEl.textContent = totalUsers;
+        const kpiAdminsEl = document.getElementById('kpiTotalAdmins');
+        if (kpiAdminsEl) kpiAdminsEl.textContent = totalAdmins;
+        const kpiCommonEl = document.getElementById('kpiTotalCommon');
+        if (kpiCommonEl) kpiCommonEl.textContent = totalCommon;
+        
         renderUsersTable();
     } catch (e) {
         showToast('Erro ao carregar usuários.', 'error');
