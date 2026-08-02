@@ -89,6 +89,7 @@
                     <button class="alert-banner-close" id="btnDismissAlert"><i class='bx bx-x'></i></button>
                 </div>
 
+                <button class="btn-icon" id="btnThemeToggle" title="Alternar Tema" style="border: 1px solid var(--border-color);"><i class='bx bx-moon'></i></button>
                 <select id="globalMonthSelector" class="month-selector">
                     <option value="all">Todo o Período</option>
                     <!-- Options preenchidas via JS -->
@@ -238,6 +239,35 @@
 
         <!-- VIEW: ADMIN -->
         <div id="view-admin" class="view-section" style="display:none;">
+            <div class="kpi-grid" style="margin-bottom: 2rem;">
+                <div class="kpi-card kpi-balance">
+                    <div class="kpi-header">
+                        <span class="kpi-title">Total de Usuários</span>
+                        <div class="kpi-icon"><i class='bx bx-group'></i></div>
+                    </div>
+                    <div class="kpi-value" id="kpiTotalUsers">0</div>
+                    <div class="kpi-footer">Usuários cadastrados</div>
+                </div>
+                
+                <div class="kpi-card kpi-income">
+                    <div class="kpi-header">
+                        <span class="kpi-title">Administradores</span>
+                        <div class="kpi-icon"><i class='bx bx-shield-quarter'></i></div>
+                    </div>
+                    <div class="kpi-value" id="kpiTotalAdmins">0</div>
+                    <div class="kpi-footer">Acesso total</div>
+                </div>
+                
+                <div class="kpi-card kpi-expense">
+                    <div class="kpi-header">
+                        <span class="kpi-title">Usuários Padrão</span>
+                        <div class="kpi-icon"><i class='bx bx-user'></i></div>
+                    </div>
+                    <div class="kpi-value" id="kpiTotalCommon">0</div>
+                    <div class="kpi-footer">Acesso restrito</div>
+                </div>
+            </div>
+
             <div style="display:flex; justify-content: flex-end; margin-bottom: 1rem;">
                 <button class="btn btn-primary" id="btnNewUser"><i class='bx bx-user-plus'></i> Novo Usuário</button>
             </div>
