@@ -2,6 +2,7 @@
 
 /* --- DESIGN SYSTEM & VARIAVEIS --- */
 :root {
+    color-scheme: dark;
     --bg-main: #070a13;
     --bg-surface: #0e1322;
     --bg-surface-glass: rgba(14, 19, 34, 0.65);
