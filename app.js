@@ -33,6 +33,12 @@ document.addEventListener('DOMContentLoaded', () => {
     setupModalCloseOnOverlay();
     setupFilterListeners();
     setupProfileMenu();
+    
+    // Mostrar painel admin apenas se for admin
+    if (app.currentUser && app.currentUser.role === 'admin') {
+        const navAdmin = document.getElementById('navAdmin');
+        if (navAdmin) navAdmin.style.display = '';
+    }
 
     // Abrir modal de nova transação pelo header
     const btnNew = document.getElementById('btnNewTransaction');
