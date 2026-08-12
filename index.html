@@ -130,10 +130,19 @@
 
                 <div class="kpi-card kpi-expense" style="border-color: rgba(245, 158, 11, 0.3);">
                     <div class="kpi-header">
-                        <span class="kpi-title" style="color: var(--color-pending);">A Pagar / Vencidas</span>
+                        <span class="kpi-title" style="color: var(--color-pending);">A Pagar</span>
                         <div class="kpi-icon" style="background: rgba(245, 158, 11, 0.1); color: var(--color-pending);"><i class='bx bx-time-five'></i></div>
                     </div>
                     <div class="kpi-value" id="kpiTotalPending" style="color: var(--color-pending);">R$ 0,00</div>
+                    <div class="kpi-footer">Despesas pendentes</div>
+                </div>
+
+                <div class="kpi-card kpi-expense" style="border-color: rgba(239, 68, 68, 0.4);">
+                    <div class="kpi-header">
+                        <span class="kpi-title" style="color: var(--color-expense);">Vencidas</span>
+                        <div class="kpi-icon" style="background: rgba(239, 68, 68, 0.1); color: var(--color-expense);"><i class='bx bx-error-circle'></i></div>
+                    </div>
+                    <div class="kpi-value" id="kpiOverdueTotal" style="color: var(--color-expense);">R$ 0,00</div>
                     <div class="kpi-footer" id="kpiOverdueCount">0 pendências atrasadas</div>
                 </div>
             </div>
@@ -336,6 +345,10 @@
                     <div class="form-group">
                         <label>Categoria</label>
                         <select id="formCategory" class="form-input" required></select>
+                    </div>
+                    <div class="form-group full-width" id="customCategoryGroup" style="display:none;">
+                        <label>Nova Categoria <span style="color:var(--color-pending);font-size:.75rem;">(será salva para uso futuro)</span></label>
+                        <input type="text" id="formCustomCategory" class="form-input" placeholder="Ex: Educação, Saúde, Pet...">
                     </div>
                     <div class="form-group">
                         <label>Status</label>
