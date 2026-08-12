@@ -7,6 +7,8 @@ const db = {
             db.set('users', []);
             db.set('transactions', []);
             db.set('links', []);
+            db.set('pantry', []);
+            db.set('investments', []);
         }
         
         // Garante que exista pelo menos um usuário administrador padrão
@@ -256,6 +258,100 @@ async function apiFetch(url, options = {}) {
                 db.set('transactions', txs);
             }
             return { success: true, imported: importedCount, errors: [] };
+        }
+    }
+
+    if (route === 'pantry') {
+        const id = searchParams.get('id');
+        let items = db.get('pantry').filter(i => i.user_id === uid);
+        
+        if (method === 'GET') {
+            let totalItems = items.length;
+            let totalValue = 0;
+            let lowStockCount = 0;
+            
+            items.forEach(i => {
+                totalValue += (parseFloat(i.price) || 0) * (parseFloat(i.quantity) || 0);
+                if (parseFloat(i.quantity) <= parseFloat(i.min_quantity)) lowStockCount++;
+            });
+            
+            return { 
+                success: true, 
+                items: items,
+                stats: { total_items: totalItems, total_value: totalValue, low_stock: lowStockCount }
+            };
+        }
+        
+        if (method === 'POST') {
+            const allItems = db.get('pantry');
+            if (body.id) {
+                const idx = allItems.findIndex(i => i.id == body.id && i.user_id === uid);
+                if (idx > -1) allItems[idx] = { ...allItems[idx], ...body };
+            } else {
+                body.id = Date.now();
+                body.user_id = uid;
+                allItems.push(body);
+            }
+            db.set('pantry', allItems);
+            return { success: true, message: 'Item salvo!' };
+        }
+        
+        if (method === 'DELETE') {
+            const idToDelete = searchParams.get('id') || (url.includes('?id=') ? new URLSearchParams(url.split('?')[1]).get('id') : null);
+            if (idToDelete) {
+                db.set('pantry', db.get('pantry').filter(i => i.id != idToDelete));
+                return { success: true };
+            }
+        }
+    }
+
+    if (route === 'investments') {
+        const id = searchParams.get('id');
+        let invs = db.get('investments').filter(i => i.user_id === uid);
+        
+        if (method === 'GET') {
+            let totalApplied = 0;
+            let currentTotal = 0;
+            
+            invs.forEach(i => {
+                totalApplied += parseFloat(i.amount) || 0;
+                currentTotal += parseFloat(i.current_value) || parseFloat(i.amount) || 0;
+            });
+            
+            let returnPct = totalApplied > 0 ? ((currentTotal - totalApplied) / totalApplied) * 100 : 0;
+            
+            return { 
+                success: true, 
+                investments: invs.sort((a,b) => new Date(b.date) - new Date(a.date)),
+                stats: { 
+                    total_applied: totalApplied, 
+                    current_total: currentTotal, 
+                    return_pct: returnPct,
+                    return_abs: currentTotal - totalApplied
+                }
+            };
+        }
+        
+        if (method === 'POST') {
+            const allInvs = db.get('investments');
+            if (body.id) {
+                const idx = allInvs.findIndex(i => i.id == body.id && i.user_id === uid);
+                if (idx > -1) allInvs[idx] = { ...allInvs[idx], ...body };
+            } else {
+                body.id = Date.now();
+                body.user_id = uid;
+                allInvs.push(body);
+            }
+            db.set('investments', allInvs);
+            return { success: true, message: 'Investimento salvo!' };
+        }
+        
+        if (method === 'DELETE') {
+            const idToDelete = searchParams.get('id') || (url.includes('?id=') ? new URLSearchParams(url.split('?')[1]).get('id') : null);
+            if (idToDelete) {
+                db.set('investments', db.get('investments').filter(i => i.id != idToDelete));
+                return { success: true };
+            }
         }
     }
 
