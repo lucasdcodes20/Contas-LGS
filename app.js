@@ -12,6 +12,9 @@ const state = {
     stats: {},
     links: [],
     users: [],
+    pantry: [],
+    investments: [],
+    shoppingList: [],
     activeView: 'dashboard',
     chartInstance: null,
     debounceTimeout: null,
@@ -58,6 +61,22 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const btnImport = document.getElementById('btnImportCSV');
     if (btnImport) btnImport.addEventListener('click', () => {
+        state.importData = null;
+        document.getElementById('importPreviewContainer').style.display = 'none';
+        document.getElementById('btnConfirmImport').style.display = 'none';
+        openModal('modalImport');
+    });
+
+    // Pantry
+    const btnNewPantryItem = document.getElementById('btnNewPantryItem');
+    if (btnNewPantryItem) btnNewPantryItem.addEventListener('click', () => openPantryItemModal());
+
+    const btnOpenShoppingList = document.getElementById('btnOpenShoppingList');
+    if (btnOpenShoppingList) btnOpenShoppingList.addEventListener('click', generateShoppingList);
+
+    // Investments
+    const btnNewInvestment = document.getElementById('btnNewInvestment');
+    if (btnNewInvestment) btnNewInvestment.addEventListener('click', () => openInvestmentModal());
         document.getElementById('importPreviewContainer').style.display = 'none';
         document.getElementById('btnConfirmImport').style.display = 'none';
         state.importData = null;
@@ -192,10 +211,12 @@ function navigateTo(view) {
 
     // Atualizar título do header
     const titles = {
-        dashboard:    ['Dashboard', 'Acompanhamento financeiro em tempo real'],
-        transactions: ['Transações', 'Visualize e gerencie todos os lançamentos'],
-        links:        ['Links Úteis', 'Atalhos para portais e serviços financeiros'],
-        admin:        ['Gestão de Usuários', 'Administração de contas do sistema'],
+        dashboard:     ['Dashboard', 'Acompanhamento financeiro em tempo real'],
+        transactions:  ['Transações', 'Visualize e gerencie todos os lançamentos'],
+        links:         ['Links Úteis', 'Atalhos para portais e serviços financeiros'],
+        admin:         ['Gestão de Usuários', 'Administração de contas do sistema'],
+        estoque:       ['Controle de Estoque', 'Gerenciamento de despensa e lista de compras'],
+        investimentos: ['Investimentos', 'Acompanhamento da carteira e rentabilidade'],
     };
     const [title, subtitle] = titles[view] || ['contasLGS', ''];
     const pageTitle = document.getElementById('pageTitle');
@@ -212,6 +233,8 @@ function navigateTo(view) {
     if (view === 'transactions') loadTransactions();
     if (view === 'links')        loadLinks();
     if (view === 'admin')        loadUsers();
+    if (view === 'estoque')      loadPantry();
+    if (view === 'investimentos')loadInvestments();
 }
 
 // ==========================================
