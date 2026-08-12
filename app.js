@@ -42,7 +42,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Abrir modal de nova transação pelo header
     const btnNew = document.getElementById('btnNewTransaction');
-    if (btnNew) btnNew.addEventListener('click', () => openModal('modalTransaction'));
+    if (btnNew) btnNew.addEventListener('click', () => openTransactionModal());
 
     // Botão novo link
     const btnNewLink = document.getElementById('btnNewLink');
@@ -448,6 +448,7 @@ async function loadAlerts() {
         }
         // Atualizar KPI de pendências
         setEl('kpiOverdueCount', `${res.overdue_count} pendência${res.overdue_count !== 1 ? 's' : ''} atrasada${res.overdue_count !== 1 ? 's' : ''}`);
+        setEl('kpiOverdueTotal', formatCurrency(res.overdue_total || 0));
     } catch (e) { /* silencioso */ }
 }
 
@@ -670,6 +671,24 @@ function updateFormCategories() {
     if (!sel || !state.categories) return;
 
     sel.innerHTML = (state.categories[type] || []).map(c => `<option value="${c}">${c}</option>`).join('');
+
+    // Mostrar/esconder campo de categoria personalizada
+    sel.removeEventListener('change', handleCategoryChange);
+    sel.addEventListener('change', handleCategoryChange);
+    handleCategoryChange.call(sel);
+}
+
+function handleCategoryChange() {
+    const customGroup = document.getElementById('customCategoryGroup');
+    const customInput = document.getElementById('formCustomCategory');
+    if (!customGroup) return;
+    if (this.value === 'Outros') {
+        customGroup.style.display = 'block';
+        if (customInput) customInput.focus();
+    } else {
+        customGroup.style.display = 'none';
+        if (customInput) customInput.value = '';
+    }
 }
 
 async function saveTransaction() {
@@ -679,12 +698,30 @@ async function saveTransaction() {
     const description = document.getElementById('formDesc').value.trim();
     const amount      = parseFloat(document.getElementById('formAmount').value);
     const date        = document.getElementById('formDate').value;
-    const category    = document.getElementById('formCategory').value;
+    let   category    = document.getElementById('formCategory').value;
     const status      = document.getElementById('formStatus').value;
     const notes       = document.getElementById('formNotes').value.trim();
     const chkRec      = document.getElementById('formRecurring');
     const recurring   = chkRec ? chkRec.checked : false;
     const recurringDay= recurring ? (parseInt(document.getElementById('formRecurringDay').value) || null) : null;
+
+    // Se Outros, usar categoria personalizada
+    if (category === 'Outros') {
+        const customVal = (document.getElementById('formCustomCategory')?.value || '').trim();
+        if (customVal) {
+            category = customVal;
+            // Persistir nova categoria no state para uso futuro
+            const rdInc = document.getElementById('typeIncome');
+            const t = rdInc && rdInc.checked ? 'Receita' : 'Despesa';
+            if (state.categories && state.categories[t] && !state.categories[t].includes(category)) {
+                // Inserir antes de 'Outros'
+                const idx = state.categories[t].indexOf('Outros');
+                if (idx > -1) state.categories[t].splice(idx, 0, category);
+                else state.categories[t].push(category);
+                populateCategoryFilter();
+            }
+        }
+    }
 
     if (!description) return showToast('Descrição é obrigatória.', 'error');
     if (!amount || amount <= 0) return showToast('Informe um valor válido.', 'error');
