@@ -43,6 +43,12 @@
             <li class="nav-item" data-view="links">
                 <a href="#links"><i class='bx bx-link-alt'></i> Links Úteis</a>
             </li>
+            <li class="nav-item" data-view="estoque">
+                <a href="#estoque"><i class='bx bx-basket'></i> Estoque</a>
+            </li>
+            <li class="nav-item" data-view="investimentos">
+                <a href="#investimentos"><i class='bx bx-line-chart'></i> Investimentos</a>
+            </li>
             <li class="nav-item" data-view="admin" id="navAdmin" style="display: none;">
                 <a href="#admin"><i class='bx bx-shield-quarter'></i> Gestão de Usuários</a>
             </li>
@@ -147,6 +153,25 @@
                 </div>
             </div>
 
+            <!-- KPIs de Investimento -->
+            <div class="kpi-grid" style="grid-template-columns: repeat(auto-fit, minmax(260px,1fr));">
+                <div class="kpi-card" style="border-color:rgba(16,185,129,0.25);">
+                    <div class="kpi-header">
+                        <span class="kpi-title" style="color:var(--color-income);">Total Investido</span>
+                        <div class="kpi-icon" style="background:rgba(16,185,129,0.1);color:var(--color-income);"><i class='bx bx-money'></i></div>
+                    </div>
+                    <div class="kpi-value" id="kpiTotalInvested" style="color:var(--color-income);">R$ 0,00</div>
+                    <div class="kpi-footer">Valor atual: <span id="kpiInvestCurrentValue" style="color:var(--color-income);">R$ 0,00</span></div>
+                </div>
+                <div class="kpi-card" style="border-color:rgba(99,102,241,0.25);">
+                    <div class="kpi-header">
+                        <span class="kpi-title" style="color:var(--color-primary);">Distribuição da Renda</span>
+                        <div class="kpi-icon" style="background:rgba(99,102,241,0.1);color:var(--color-primary);"><i class='bx bx-pie-chart-alt-2'></i></div>
+                    </div>
+                    <div id="allocationBars" style="display:flex;flex-direction:column;gap:0.6rem;margin-top:0.25rem;"></div>
+                </div>
+            </div>
+
             <div class="dashboard-grid">
                 <div class="chart-card">
                     <div class="chart-header">
@@ -243,6 +268,120 @@
             </div>
             <div class="links-grid" id="linksContainer">
                 <!-- Links via JS -->
+            </div>
+        </div>
+
+        <!-- VIEW: ESTOQUE -->
+        <div id="view-estoque" class="view-section" style="display:none;">
+            <div class="kpi-grid" style="margin-bottom:1.5rem;">
+                <div class="kpi-card kpi-balance">
+                    <div class="kpi-header">
+                        <span class="kpi-title">Total de Itens</span>
+                        <div class="kpi-icon"><i class='bx bx-package'></i></div>
+                    </div>
+                    <div class="kpi-value" id="kpiStockTotal">0</div>
+                    <div class="kpi-footer">itens cadastrados</div>
+                </div>
+                <div class="kpi-card kpi-expense">
+                    <div class="kpi-header">
+                        <span class="kpi-title">Estoque Baixo</span>
+                        <div class="kpi-icon" style="background:rgba(245,158,11,0.1);color:var(--color-pending);"><i class='bx bx-error'></i></div>
+                    </div>
+                    <div class="kpi-value" id="kpiStockLow" style="color:var(--color-pending);">0</div>
+                    <div class="kpi-footer">itens precisam de reposição</div>
+                </div>
+                <div class="kpi-card kpi-income">
+                    <div class="kpi-header">
+                        <span class="kpi-title">Valor em Estoque</span>
+                        <div class="kpi-icon"><i class='bx bx-dollar'></i></div>
+                    </div>
+                    <div class="kpi-value" id="kpiStockValue">R$ 0,00</div>
+                    <div class="kpi-footer">valor estimado dos itens</div>
+                </div>
+            </div>
+
+            <div style="display:flex;gap:0.75rem;flex-wrap:wrap;margin-bottom:1.5rem;">
+                <button class="btn btn-primary" id="btnNewPantryItem"><i class='bx bx-plus'></i> Adicionar Item</button>
+                <button class="btn btn-secondary" id="btnOpenShoppingList"><i class='bx bx-cart'></i> Gerar Lista de Compras</button>
+            </div>
+
+            <div class="table-card">
+                <div class="table-header-row">
+                    <span class="table-title">Itens da Despensa</span>
+                </div>
+                <div class="table-container">
+                    <table id="pantryTable">
+                        <thead>
+                            <tr>
+                                <th>Item</th>
+                                <th>Categoria</th>
+                                <th>Qtd. Atual</th>
+                                <th>Qtd. Mínima</th>
+                                <th>Unidade</th>
+                                <th>Preço Médio</th>
+                                <th>Status</th>
+                                <th style="text-align:right;">Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- VIEW: INVESTIMENTOS -->
+        <div id="view-investimentos" class="view-section" style="display:none;">
+            <div class="kpi-grid" style="margin-bottom:1.5rem;">
+                <div class="kpi-card" style="border-color:rgba(16,185,129,0.25);">
+                    <div class="kpi-header">
+                        <span class="kpi-title" style="color:var(--color-income);">Total Aplicado</span>
+                        <div class="kpi-icon" style="background:rgba(16,185,129,0.1);color:var(--color-income);"><i class='bx bx-money-withdraw'></i></div>
+                    </div>
+                    <div class="kpi-value" id="kpiInvTotalApplied" style="color:var(--color-income);">R$ 0,00</div>
+                    <div class="kpi-footer">valor total aplicado</div>
+                </div>
+                <div class="kpi-card" style="border-color:rgba(99,102,241,0.25);">
+                    <div class="kpi-header">
+                        <span class="kpi-title" style="color:var(--color-primary);">Valor Atual</span>
+                        <div class="kpi-icon" style="background:rgba(99,102,241,0.1);color:var(--color-primary);"><i class='bx bx-trending-up'></i></div>
+                    </div>
+                    <div class="kpi-value" id="kpiInvCurrentTotal" style="color:var(--color-primary);">R$ 0,00</div>
+                    <div class="kpi-footer">valorização da carteira</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-header">
+                        <span class="kpi-title">Rentabilidade</span>
+                        <div class="kpi-icon" style="background:rgba(16,185,129,0.08);"><i class='bx bx-badge-check'></i></div>
+                    </div>
+                    <div class="kpi-value" id="kpiInvReturn">0,00%</div>
+                    <div class="kpi-footer" id="kpiInvReturnAbs">ganho/perda em R$</div>
+                </div>
+            </div>
+
+            <div style="display:flex;justify-content:flex-end;margin-bottom:1.5rem;">
+                <button class="btn btn-primary" id="btnNewInvestment"><i class='bx bx-plus'></i> Novo Investimento</button>
+            </div>
+
+            <div class="table-card">
+                <div class="table-header-row">
+                    <span class="table-title">Carteira de Investimentos</span>
+                </div>
+                <div class="table-container">
+                    <table id="investmentsTable">
+                        <thead>
+                            <tr>
+                                <th>Ativo</th>
+                                <th>Tipo</th>
+                                <th>Data</th>
+                                <th>Valor Aplicado</th>
+                                <th>Valor Atual</th>
+                                <th>Variação</th>
+                                <th style="text-align:right;">Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
             </div>
         </div>
 
@@ -528,6 +667,152 @@
             <button class="btn btn-secondary" onclick="closeModal('modalImport')">Cancelar</button>
             <button class="btn btn-primary" id="btnConfirmImport" style="display:none;" onclick="processImport()"><i class='bx bx-check'></i> Confirmar Importação</button>
         </div>
+    </div>
+</div>
+
+<!-- MODAL ITEM DE ESTOQUE -->
+<div class="modal-overlay" id="modalPantryItem">
+    <div class="modal-card">
+        <div class="modal-header">
+            <h3 class="modal-title" id="modalPantryTitle">Novo Item</h3>
+            <button class="btn-icon" onclick="closeModal('modalPantryItem')"><i class='bx bx-x'></i></button>
+        </div>
+        <div class="modal-body">
+            <form id="pantryForm" class="form-grid">
+                <input type="hidden" id="formPantryId">
+                <div class="form-group full-width">
+                    <label>Nome do Item</label>
+                    <input type="text" id="formPantryName" class="form-input" placeholder="Ex: Arroz, Feijão, Sabão em pó..." required>
+                </div>
+                <div class="form-group">
+                    <label>Categoria</label>
+                    <select id="formPantryCategory" class="form-input">
+                        <option>Grãos e Cereais</option>
+                        <option>Laticínios</option>
+                        <option>Carnes e Aves</option>
+                        <option>Hortifruti</option>
+                        <option>Bebidas</option>
+                        <option>Enlatados e Conservas</option>
+                        <option>Higiene Pessoal</option>
+                        <option>Limpeza</option>
+                        <option>Outros</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Unidade</label>
+                    <select id="formPantryUnit" class="form-input">
+                        <option value="kg">kg</option>
+                        <option value="g">g</option>
+                        <option value="L">L</option>
+                        <option value="ml">ml</option>
+                        <option value="un">unidade(s)</option>
+                        <option value="cx">caixa(s)</option>
+                        <option value="pct">pacote(s)</option>
+                        <option value="dz">dúzia(s)</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Quantidade Atual</label>
+                    <input type="number" id="formPantryQty" class="form-input" min="0" step="0.1" placeholder="0" required>
+                </div>
+                <div class="form-group">
+                    <label>Quantidade Mínima <span style="color:var(--text-muted);font-size:0.75rem;">(para reposição)</span></label>
+                    <input type="number" id="formPantryMinQty" class="form-input" min="0" step="0.1" placeholder="Ex: 1" required>
+                </div>
+                <div class="form-group full-width">
+                    <label>Preço Médio (R$)</label>
+                    <input type="number" id="formPantryPrice" class="form-input" min="0" step="0.01" placeholder="0,00">
+                </div>
+            </form>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="closeModal('modalPantryItem')">Cancelar</button>
+            <button class="btn btn-primary" onclick="savePantryItem()"><i class='bx bx-save'></i> Salvar Item</button>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL LISTA DE COMPRAS -->
+<div class="modal-overlay" id="modalShoppingList">
+    <div class="modal-card modal-card-lg">
+        <div class="modal-header">
+            <h3 class="modal-title"><i class='bx bx-cart' style="color:var(--color-primary);"></i> Lista de Compras</h3>
+            <button class="btn-icon" onclick="closeModal('modalShoppingList')"><i class='bx bx-x'></i></button>
+        </div>
+        <div class="modal-body">
+            <p style="font-size:0.85rem;color:var(--text-secondary);margin-bottom:1.25rem;">Itens com estoque abaixo do mínimo. Ajuste as quantidades ou adicione itens extras.</p>
+            <div id="shoppingListItems"></div>
+            <div class="shopping-add-row">
+                <input type="text" id="extraItemName" class="form-input" placeholder="Nome do item extra..." style="flex:2;">
+                <input type="number" id="extraItemQty" class="form-input" placeholder="Qtd" min="0.1" step="0.1" style="flex:0.8;">
+                <select id="extraItemUnit" class="form-input" style="flex:1;">
+                    <option value="un">un</option>
+                    <option value="kg">kg</option>
+                    <option value="g">g</option>
+                    <option value="L">L</option>
+                    <option value="pct">pct</option>
+                    <option value="cx">cx</option>
+                </select>
+                <button class="btn btn-secondary btn-sm" onclick="addShoppingExtra()"><i class='bx bx-plus'></i> Adicionar</button>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="closeModal('modalShoppingList')">Fechar</button>
+            <button class="btn btn-success" onclick="printShoppingList()"><i class='bx bx-printer'></i> Imprimir Lista</button>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL INVESTIMENTO -->
+<div class="modal-overlay" id="modalInvestment">
+    <div class="modal-card">
+        <div class="modal-header">
+            <h3 class="modal-title" id="modalInvestmentTitle">Novo Investimento</h3>
+            <button class="btn-icon" onclick="closeModal('modalInvestment')"><i class='bx bx-x'></i></button>
+        </div>
+        <div class="modal-body">
+            <form id="investmentForm" class="form-grid">
+                <input type="hidden" id="formInvestmentId">
+                <div class="form-group full-width">
+                    <label>Nome do Ativo</label>
+                    <input type="text" id="formInvestmentName" class="form-input" placeholder="Ex: Tesouro Selic 2027, PETR4, Poupança..." required>
+                </div>
+                <div class="form-group">
+                    <label>Tipo</label>
+                    <select id="formInvestmentType" class="form-input">
+                        <option value="Renda Fixa">Renda Fixa</option>
+                        <option value="Ações">Ações</option>
+                        <option value="FII">FII (Fundo Imobiliário)</option>
+                        <option value="Cripto">Criptomoedas</option>
+                        <option value="Poupança">Poupança</option>
+                        <option value="Previdência">Previdência</option>
+                        <option value="Outros">Outros</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Data da Aplicação</label>
+                    <input type="date" id="formInvestmentDate" class="form-input">
+                </div>
+                <div class="form-group">
+                    <label>Valor Aplicado (R$)</label>
+                    <input type="number" id="formInvestmentAmount" class="form-input" min="0" step="0.01" placeholder="0,00" required>
+                </div>
+                <div class="form-group">
+                    <label>Valor Atual (R$) <span style="color:var(--text-muted);font-size:0.75rem;">opcional</span></label>
+                    <input type="number" id="formInvestmentCurrentValue" class="form-input" min="0" step="0.01" placeholder="Igual ao aplicado se vazio">
+                </div>
+                <div class="form-group full-width">
+                    <label>Observações</label>
+                    <input type="text" id="formInvestmentNotes" class="form-input" placeholder="Opcional">
+                </div>
+            </form>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="closeModal('modalInvestment')">Cancelar</button>
+            <button class="btn btn-primary" onclick="saveInvestment()"><i class='bx bx-save'></i> Salvar</button>
+        </div>
+    </div>
+</div>
     </div>
 </div>
 
