@@ -77,11 +77,6 @@ document.addEventListener('DOMContentLoaded', () => {
     // Investments
     const btnNewInvestment = document.getElementById('btnNewInvestment');
     if (btnNewInvestment) btnNewInvestment.addEventListener('click', () => openInvestmentModal());
-        document.getElementById('importPreviewContainer').style.display = 'none';
-        document.getElementById('btnConfirmImport').style.display = 'none';
-        state.importData = null;
-        openModal('modalImport');
-    });
 
     // Dropzone de importação
     setupImportDropzone();
@@ -328,12 +323,69 @@ async function loadDashboardData() {
             updateFormCategories();
         }
 
+        // Fetch investments to update dashboard KPIs
+        const invRes = await apiFetch('api.php?route=investments');
+        if (invRes && invRes.success) {
+            state.investments = invRes.investments || [];
+            renderInvestmentDashboardKPIs(invRes.stats, state.stats);
+        }
+
         updateKPICards();
         renderCategoryBreakdown();
         renderChart(monthYear);
     } catch (e) {
         showToast('Erro ao carregar dados do dashboard.', 'error');
     }
+}
+
+function renderInvestmentDashboardKPIs(invStats, txStats) {
+    if (!invStats) return;
+    setEl('kpiTotalInvested', formatCurrency(invStats.total_applied));
+    setEl('kpiInvestCurrentValue', formatCurrency(invStats.current_total));
+    
+    // Distribuição: Income vs Investimentos
+    const totalIncome = txStats.paid_income || 0;
+    const totalInvested = invStats.total_applied || 0;
+    const totalExpense = txStats.paid_expense || 0;
+    
+    const container = document.getElementById('allocationBars');
+    if (!container) return;
+    
+    if (totalIncome === 0 && totalInvested === 0) {
+        container.innerHTML = '<span style="font-size:0.8rem;color:var(--text-muted);">Sem dados suficientes</span>';
+        return;
+    }
+    
+    // Simplificando a alocação
+    const totalAll = totalIncome + totalInvested; 
+    let invPct = 0, expPct = 0, freePct = 0;
+    
+    if (totalIncome > 0) {
+        // Assume investments are from income. This is a simple representation for UI
+        // If invested > income, we max it out at 100%
+        invPct = Math.min((totalInvested / totalIncome) * 100, 100);
+        expPct = Math.min((totalExpense / totalIncome) * 100, 100);
+        freePct = Math.max(100 - invPct - expPct, 0);
+    } else {
+        invPct = 100;
+        expPct = 0;
+        freePct = 0;
+    }
+    
+    container.innerHTML = `
+        <div style="display:flex; justify-content:space-between; font-size:0.8rem; margin-bottom:0.25rem;">
+            <span>Investido</span> <span style="font-weight:600;color:var(--color-income);">${invPct.toFixed(1)}%</span>
+        </div>
+        <div class="progress-bar-bg" style="height:6px; background:var(--bg-hover);">
+            <div class="progress-bar-fill" style="width:${invPct}%; background:var(--color-income);"></div>
+        </div>
+        <div style="display:flex; justify-content:space-between; font-size:0.8rem; margin-top:0.5rem; margin-bottom:0.25rem;">
+            <span>Gasto</span> <span style="font-weight:600;color:var(--color-expense);">${expPct.toFixed(1)}%</span>
+        </div>
+        <div class="progress-bar-bg" style="height:6px; background:var(--bg-hover);">
+            <div class="progress-bar-fill" style="width:${expPct}%; background:var(--color-expense);"></div>
+        </div>
+    `;
 }
 
 function updateKPICards() {
@@ -1269,6 +1321,8 @@ function setupModalCloseOnOverlay() {
 function refreshCurrentView() {
     if (state.activeView === 'dashboard')    { loadDashboardData(); }
     if (state.activeView === 'transactions') { loadTransactions(); }
+    if (state.activeView === 'estoque')      { loadPantry(); }
+    if (state.activeView === 'investimentos'){ loadInvestments(); }
 }
 
 function showToast(message, type = 'success') {
@@ -1316,4 +1370,385 @@ function escHtml(str) {
 function debounce(fn, ms = 350) {
     clearTimeout(state.debounceTimeout);
     state.debounceTimeout = setTimeout(fn, ms);
+}
+
+// ==========================================
+// ESTOQUE / DESPENSA
+// ==========================================
+async function loadPantry() {
+    try {
+        const res = await apiFetch('api.php?route=pantry');
+        if (res && res.success) {
+            state.pantry = res.items || [];
+            renderPantryTable();
+            
+            if (res.stats) {
+                setEl('kpiStockTotal', res.stats.total_items);
+                setEl('kpiStockLow', res.stats.low_stock);
+                setEl('kpiStockValue', formatCurrency(res.stats.total_value));
+            }
+        }
+    } catch (e) {
+        showToast('Erro ao carregar estoque', 'error');
+    }
+}
+
+function renderPantryTable() {
+    const tbody = document.querySelector('#pantryTable tbody');
+    if (!tbody) return;
+
+    if (state.pantry.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="8"><div class="empty-state"><i class='bx bx-basket empty-icon'></i><h3>Nenhum item na despensa</h3><p>Adicione itens para começar a controlar o estoque.</p></div></td></tr>`;
+        return;
+    }
+
+    tbody.innerHTML = state.pantry.map(i => {
+        const isLow = parseFloat(i.quantity) <= parseFloat(i.min_quantity);
+        const isOut = parseFloat(i.quantity) === 0;
+        let statusBadge = '';
+        
+        if (isOut) {
+            statusBadge = `<span class="badge" style="background:rgba(244,63,94,0.1);color:var(--color-expense);">Faltando</span>`;
+        } else if (isLow) {
+            statusBadge = `<span class="badge" style="background:rgba(245,158,11,0.1);color:var(--color-pending);">Baixo</span>`;
+        } else {
+            statusBadge = `<span class="badge" style="background:rgba(16,185,129,0.1);color:var(--color-income);">Suficiente</span>`;
+        }
+
+        return `
+            <tr>
+                <td style="font-weight:600;">${escHtml(i.name)}</td>
+                <td><span style="font-size:0.8rem; color:var(--text-secondary);">${escHtml(i.category)}</span></td>
+                <td style="font-weight:700; color:${isLow ? (isOut ? 'var(--color-expense)' : 'var(--color-pending)') : 'var(--text-primary)'}">${i.quantity}</td>
+                <td style="color:var(--text-muted);">${i.min_quantity}</td>
+                <td>${escHtml(i.unit)}</td>
+                <td>${formatCurrency(i.price)}</td>
+                <td>${statusBadge}</td>
+                <td>
+                    <div class="actions-cell">
+                        <button class="btn-icon btn-icon-edit" onclick="openPantryItemModal(${i.id})"><i class='bx bx-edit-alt'></i></button>
+                        <button class="btn-icon btn-icon-delete" onclick="deletePantryItem(${i.id})"><i class='bx bx-trash'></i></button>
+                    </div>
+                </td>
+            </tr>
+        `;
+    }).join('');
+}
+
+function openPantryItemModal(id = null) {
+    const form = document.getElementById('pantryForm');
+    if (form) form.reset();
+    
+    document.getElementById('formPantryId').value = '';
+    document.getElementById('modalPantryTitle').textContent = 'Novo Item';
+    
+    if (id) {
+        const item = state.pantry.find(i => i.id == id);
+        if (item) {
+            document.getElementById('modalPantryTitle').textContent = 'Editar Item';
+            setFormVal('formPantryId', item.id);
+            setFormVal('formPantryName', item.name);
+            setFormVal('formPantryCategory', item.category);
+            setFormVal('formPantryUnit', item.unit);
+            setFormVal('formPantryQty', item.quantity);
+            setFormVal('formPantryMinQty', item.min_quantity);
+            setFormVal('formPantryPrice', item.price);
+        }
+    }
+    openModal('modalPantryItem');
+}
+
+async function savePantryItem() {
+    const id = document.getElementById('formPantryId').value;
+    const name = document.getElementById('formPantryName').value.trim();
+    const category = document.getElementById('formPantryCategory').value;
+    const unit = document.getElementById('formPantryUnit').value;
+    const quantity = document.getElementById('formPantryQty').value;
+    const min_quantity = document.getElementById('formPantryMinQty').value;
+    const price = document.getElementById('formPantryPrice').value;
+
+    if (!name || !quantity || !min_quantity) {
+        return showToast('Preencha os campos obrigatórios', 'error');
+    }
+
+    const payload = { id, name, category, unit, quantity, min_quantity, price };
+
+    try {
+        const res = await apiFetch('api.php?route=pantry', { method: 'POST', body: JSON.stringify(payload) });
+        if (res && res.success) {
+            showToast(res.message);
+            closeModal('modalPantryItem');
+            loadPantry();
+        } else {
+            showToast('Erro ao salvar item', 'error');
+        }
+    } catch (e) {
+        showToast('Erro de conexão', 'error');
+    }
+}
+
+async function deletePantryItem(id) {
+    if (!confirm('Excluir este item da despensa?')) return;
+    try {
+        const res = await apiFetch(`api.php?route=pantry&id=${id}`, { method: 'DELETE' });
+        if (res && res.success) {
+            showToast('Item excluído');
+            loadPantry();
+        }
+    } catch (e) {
+        showToast('Erro ao excluir', 'error');
+    }
+}
+
+function generateShoppingList() {
+    state.shoppingList = state.pantry
+        .filter(i => parseFloat(i.quantity) <= parseFloat(i.min_quantity))
+        .map(i => ({
+            id: i.id,
+            name: i.name,
+            needed: Math.max(0.1, (parseFloat(i.min_quantity) * 1.5) - parseFloat(i.quantity)).toFixed(1), // sugere comprar 50% a mais que o min
+            unit: i.unit,
+            checked: false
+        }));
+    
+    renderShoppingList();
+    openModal('modalShoppingList');
+}
+
+function renderShoppingList() {
+    const container = document.getElementById('shoppingListItems');
+    if (!container) return;
+
+    if (state.shoppingList.length === 0) {
+        container.innerHTML = `<p style="text-align:center;color:var(--text-muted);padding:1rem;">Não há itens abaixo do mínimo. Tudo OK!</p>`;
+        return;
+    }
+
+    container.innerHTML = state.shoppingList.map((item, idx) => `
+        <div style="display:flex;align-items:center;gap:1rem;padding:0.75rem;border-bottom:1px solid var(--border-color);background:${item.checked ? 'var(--bg-hover)' : 'transparent'};">
+            <input type="checkbox" style="width:18px;height:18px;cursor:pointer;" ${item.checked ? 'checked' : ''} onchange="toggleShoppingItem(${idx})">
+            <div style="flex-grow:1; text-decoration:${item.checked ? 'line-through' : 'none'}; opacity:${item.checked ? 0.6 : 1};">
+                <span style="font-weight:600;">${escHtml(item.name)}</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:0.5rem; opacity:${item.checked ? 0.6 : 1};">
+                <input type="number" class="form-input" style="width:70px;padding:0.4rem;font-size:0.85rem;" value="${item.needed}" step="0.1" onchange="updateShoppingQty(${idx}, this.value)">
+                <span style="font-size:0.85rem;color:var(--text-muted);width:30px;">${item.unit}</span>
+            </div>
+            <button class="btn-icon btn-icon-delete" onclick="removeShoppingItem(${idx})"><i class='bx bx-trash'></i></button>
+        </div>
+    `).join('');
+}
+
+function toggleShoppingItem(idx) {
+    if (state.shoppingList[idx]) {
+        state.shoppingList[idx].checked = !state.shoppingList[idx].checked;
+        renderShoppingList();
+    }
+}
+
+function updateShoppingQty(idx, val) {
+    if (state.shoppingList[idx]) {
+        state.shoppingList[idx].needed = val;
+    }
+}
+
+function removeShoppingItem(idx) {
+    state.shoppingList.splice(idx, 1);
+    renderShoppingList();
+}
+
+function addShoppingExtra() {
+    const name = document.getElementById('extraItemName').value.trim();
+    const qty = document.getElementById('extraItemQty').value || 1;
+    const unit = document.getElementById('extraItemUnit').value;
+
+    if (!name) return showToast('Nome do item é obrigatório', 'error');
+
+    state.shoppingList.push({
+        id: 'extra_' + Date.now(),
+        name: name,
+        needed: qty,
+        unit: unit,
+        checked: false
+    });
+
+    document.getElementById('extraItemName').value = '';
+    document.getElementById('extraItemQty').value = '';
+    renderShoppingList();
+}
+
+function printShoppingList() {
+    const items = state.shoppingList.map(i => `[ ${i.checked ? 'X' : ' '} ] ${i.name} - ${i.needed} ${i.unit}`).join('\n');
+    if (!items) return showToast('Lista vazia', 'error');
+    
+    // In a real app we could use window.print() on a hidden iframe, but an alert is a simple polyfill
+    const printWindow = window.open('', '_blank');
+    printWindow.document.write(`
+        <html>
+        <head>
+            <title>Lista de Compras</title>
+            <style>
+                body { font-family: sans-serif; padding: 2rem; }
+                h1 { margin-bottom: 1rem; border-bottom: 2px solid #ccc; padding-bottom: 0.5rem; }
+                .item { margin-bottom: 0.75rem; font-size: 1.1rem; }
+                .checkbox { display: inline-block; width: 16px; height: 16px; border: 1px solid #000; margin-right: 10px; vertical-align: middle; }
+                .checked { background: #000; }
+            </style>
+        </head>
+        <body>
+            <h1>Lista de Compras</h1>
+            ${state.shoppingList.map(i => `
+                <div class="item">
+                    <span class="checkbox ${i.checked ? 'checked' : ''}"></span>
+                    ${escHtml(i.name)} <strong style="float:right;">${i.needed} ${i.unit}</strong>
+                </div>
+            `).join('')}
+            <script>window.print();</script>
+        </body>
+        </html>
+    `);
+    printWindow.document.close();
+}
+
+// ==========================================
+// INVESTIMENTOS
+// ==========================================
+async function loadInvestments() {
+    try {
+        const res = await apiFetch('api.php?route=investments');
+        if (res && res.success) {
+            state.investments = res.investments || [];
+            renderInvestmentsTable();
+            
+            if (res.stats) {
+                setEl('kpiInvTotalApplied', formatCurrency(res.stats.total_applied));
+                setEl('kpiInvCurrentTotal', formatCurrency(res.stats.current_total));
+                setEl('kpiInvReturn', res.stats.return_pct.toFixed(2) + '%');
+                setEl('kpiInvReturnAbs', (res.stats.return_abs >= 0 ? '+' : '') + formatCurrency(res.stats.return_abs));
+                
+                const retEl = document.getElementById('kpiInvReturn');
+                if (retEl) {
+                    retEl.style.color = res.stats.return_pct >= 0 ? 'var(--color-income)' : 'var(--color-expense)';
+                }
+            }
+        }
+    } catch (e) {
+        showToast('Erro ao carregar investimentos', 'error');
+    }
+}
+
+function renderInvestmentsTable() {
+    const tbody = document.querySelector('#investmentsTable tbody');
+    if (!tbody) return;
+
+    if (state.investments.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="7"><div class="empty-state"><i class='bx bx-line-chart empty-icon'></i><h3>Nenhum investimento</h3><p>Cadastre seus ativos para acompanhar o rendimento.</p></div></td></tr>`;
+        return;
+    }
+
+    tbody.innerHTML = state.investments.map(i => {
+        const applied = parseFloat(i.amount) || 0;
+        const current = parseFloat(i.current_value) || applied;
+        const diff = current - applied;
+        const diffPct = applied > 0 ? (diff / applied) * 100 : 0;
+        
+        const isPos = diff >= 0;
+        const diffColor = isPos ? 'var(--color-income)' : 'var(--color-expense)';
+        const diffIcon = isPos ? 'bx-trending-up' : 'bx-trending-down';
+
+        return `
+            <tr>
+                <td style="font-weight:700;color:var(--text-primary);">
+                    ${escHtml(i.name)}
+                    ${i.notes ? `<div style="font-size:0.75rem;color:var(--text-muted);font-weight:400;margin-top:0.2rem;">${escHtml(i.notes)}</div>` : ''}
+                </td>
+                <td><span class="badge" style="background:var(--bg-hover);">${escHtml(i.type)}</span></td>
+                <td><span style="font-size:0.85rem;color:var(--text-secondary);">${formatDate(i.date)}</span></td>
+                <td>${formatCurrency(applied)}</td>
+                <td style="font-weight:600;">${formatCurrency(current)}</td>
+                <td>
+                    <span style="color:${diffColor};font-weight:600;display:flex;align-items:center;gap:0.25rem;">
+                        <i class='bx ${diffIcon}'></i> ${isPos ? '+' : ''}${diffPct.toFixed(2)}%
+                    </span>
+                    <span style="font-size:0.75rem;color:var(--text-muted);">${formatCurrency(diff)}</span>
+                </td>
+                <td>
+                    <div class="actions-cell">
+                        <button class="btn-icon btn-icon-edit" onclick="openInvestmentModal(${i.id})"><i class='bx bx-edit-alt'></i></button>
+                        <button class="btn-icon btn-icon-delete" onclick="deleteInvestment(${i.id})"><i class='bx bx-trash'></i></button>
+                    </div>
+                </td>
+            </tr>
+        `;
+    }).join('');
+}
+
+function openInvestmentModal(id = null) {
+    const form = document.getElementById('investmentForm');
+    if (form) form.reset();
+    
+    document.getElementById('formInvestmentId').value = '';
+    document.getElementById('modalInvestmentTitle').textContent = 'Novo Investimento';
+    setFormVal('formInvestmentDate', today());
+    
+    if (id) {
+        const item = state.investments.find(i => i.id == id);
+        if (item) {
+            document.getElementById('modalInvestmentTitle').textContent = 'Editar Investimento';
+            setFormVal('formInvestmentId', item.id);
+            setFormVal('formInvestmentName', item.name);
+            setFormVal('formInvestmentType', item.type);
+            setFormVal('formInvestmentDate', item.date);
+            setFormVal('formInvestmentAmount', item.amount);
+            setFormVal('formInvestmentCurrentValue', item.current_value);
+            setFormVal('formInvestmentNotes', item.notes);
+        }
+    }
+    openModal('modalInvestment');
+}
+
+async function saveInvestment() {
+    const id = document.getElementById('formInvestmentId').value;
+    const name = document.getElementById('formInvestmentName').value.trim();
+    const type = document.getElementById('formInvestmentType').value;
+    const date = document.getElementById('formInvestmentDate').value;
+    const amount = document.getElementById('formInvestmentAmount').value;
+    let current_value = document.getElementById('formInvestmentCurrentValue').value;
+    const notes = document.getElementById('formInvestmentNotes').value.trim();
+
+    if (!name || !amount) {
+        return showToast('Preencha nome e valor aplicado', 'error');
+    }
+    
+    if (!current_value) current_value = amount;
+
+    const payload = { id, name, type, date, amount, current_value, notes };
+
+    try {
+        const res = await apiFetch('api.php?route=investments', { method: 'POST', body: JSON.stringify(payload) });
+        if (res && res.success) {
+            showToast(res.message);
+            closeModal('modalInvestment');
+            loadInvestments();
+            if (state.activeView === 'dashboard') loadDashboardData(); // update kpi
+        } else {
+            showToast('Erro ao salvar', 'error');
+        }
+    } catch (e) {
+        showToast('Erro de conexão', 'error');
+    }
+}
+
+async function deleteInvestment(id) {
+    if (!confirm('Excluir este investimento?')) return;
+    try {
+        const res = await apiFetch(`api.php?route=investments&id=${id}`, { method: 'DELETE' });
+        if (res && res.success) {
+            showToast('Investimento excluído');
+            loadInvestments();
+            if (state.activeView === 'dashboard') loadDashboardData();
+        }
+    } catch (e) {
+        showToast('Erro ao excluir', 'error');
+    }
 }
